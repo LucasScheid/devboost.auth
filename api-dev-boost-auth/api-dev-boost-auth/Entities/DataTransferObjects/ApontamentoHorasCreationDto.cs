@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace api_dev_boost_auth.Models
+namespace api_dev_boost_auth.Entities.DataTransferObjects
 {
-    public class ApontamentoHoras
+    public class ApontamentoHorasCreationDto
     {
         [Required]
         public string IdentificadorFuncionario { get; set; }
@@ -12,6 +12,5 @@ namespace api_dev_boost_auth.Models
 
         [Required]
         public double HorasTrabalhadas { get; set; }
-
     }
 }

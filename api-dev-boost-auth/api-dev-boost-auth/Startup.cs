@@ -1,13 +1,14 @@
-using api_dev_boost_auth.Configuration;
-using api_dev_boost_auth.Models;
+using api_dev_boost_auth.ActionFilters;
+using api_dev_boost_auth.Contracts;
+using api_dev_boost_auth.Extensions;
+using api_dev_boost_auth.Utility;
+using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.Linq;
 
 namespace api_dev_boost_auth
 {
@@ -22,25 +23,28 @@ namespace api_dev_boost_auth
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<AppSettings>(Configuration.GetSection("TokenSettings"));
+            services.ConfigureCors();
+            services.ConfigureSqlContext(Configuration);
+            services.ConfigureRepositoryManager();
+            services.AddAutoMapper(typeof(Startup));
+            services.AddScoped<ValidationFilterAttribute>();
+            services.ConfigureVersioning();
+            services.AddMemoryCache();
+            services.AddHttpContextAccessor();
+            services.AddAuthentication();
+            services.ConfigureIdentity();
+            services.ConfigureJWT(Configuration);
 
-            services.AddCors();
+            services.AddScoped<IAuthenticationManager, AuthenticationManager>();
 
-            services.AddResponseCompression(options =>
-            {
-                options.Providers.Add<GzipCompressionProvider>();
-                options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/json" });
-            });
-
-            services.AddControllers();
-            services.AddTokenConfiguration(Configuration);
+            services.ConfigureSwagger();
 
             services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.SuppressModelStateInvalidFilter = true;
             });
 
-            services.ResolveDependencies();            
+            services.AddControllers();
         }
 
 
@@ -49,10 +53,18 @@ namespace api_dev_boost_auth
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
 
+            app.UseStaticFiles();
+            app.UseCors("CorsPolicy");
+            app.UseResponseCaching();
             app.UseRouting();
-            app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
             app.UseAuthentication();
             app.UseAuthorization();
+
+            app.UseSwagger();
+            app.UseSwaggerUI(s =>
+            {
+                s.SwaggerEndpoint("/swagger/v1/swagger.json", "Dev-Boost-Auth API v1");
+            });
 
             app.UseEndpoints(endpoints =>
             {
